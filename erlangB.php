@@ -24,9 +24,11 @@ while ($calculatedSL > (1-$seviceLevelGoal/100)) {
     $agents++;
     $calculatedSL = $ErlangB->ProbabilityOfBlocking($agents);
 }
-print_r($agents);
+// converting to real SL
+$calculatedSL = round((1-$calculatedSL)*100, 2);
+print_r('required agents='.$agents.'.');
 print_r('   ');
-print_r($calculatedSL);
+print_r('resulted service level='.$calculatedSL.'%');
 
 class ErlangB {
 
@@ -39,7 +41,6 @@ class ErlangB {
 
     private function factorial(int $number){
         $result = 1;
-
         for($i = 1; $i <= $number; $i++) {
             $result *= $i;
         }
