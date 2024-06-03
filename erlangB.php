@@ -18,10 +18,10 @@ $aht = $aht/60; // convert to minutes
 $ErlangB = new ErlangB($callsForecast, $aht);
 
 // Now we have to 'guess' number of agents
-$calculatedSL = 0;
+$calculatedSL = 1;
 $agents = 0;
 while ($calculatedSL > (1-$seviceLevelGoal/100)) {
-    $agents += 1;
+    $agents++;
     $calculatedSL = $ErlangB->ProbabilityOfBlocking($agents);
 }
 print_r($agents);
