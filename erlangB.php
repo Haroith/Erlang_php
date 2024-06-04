@@ -26,8 +26,8 @@ while ($calculatedSL > (1-$seviceLevelGoal/100)) {
 }
 // converting to real SL
 $calculatedSL = round((1-$calculatedSL)*100, 2);
-print_r('required agents='.$agents.'.');
-print_r('   ');
+print_r('required agents='.$agents);
+print_r("\n"   );
 print_r('resulted service level='.$calculatedSL.'%');
 
 class ErlangB {
