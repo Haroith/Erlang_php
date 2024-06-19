@@ -1,12 +1,12 @@
 <?php
-// We know calls forecast
+// We know chat messages forecast
 // We want to achieve service level
 // How many agents we need?
 // Let's make functions for 15 minutes interval
-// Using ErlangA formulae
-// It's ErlangC that works with abandons
+// Using ErlangChats formulae
+// It's ErlangA that works with concurrency
 
-$callsForecast15min = 147; // 47 calls per 15 minutes
+$messagesForecast15min = 147; // 147 messages per 15 minutes
 $serviceLevelPercentsGoal = 80; // 80%
 $serviceLevelTimeGoal = 20; // 20 seconds
 // convert to minutes
@@ -18,44 +18,51 @@ $serviceLevelTimeGoalMinutes = $serviceLevelTimeGoal / 60;
 $averageHandlingTimeSeconds = 120; // average handling time in seconds
 $averagePatience = 10; // average patience
 
+// We want agents to work with 3 chats
+$concurrency = 3;
+
 // First step - to find agents without abandons
-$ErlangA = new ErlangA($callsForecast15min, $averageHandlingTimeSeconds, $averagePatience);
+$ErlangChats = new ErlangChats($messagesForecast15min, $averageHandlingTimeSeconds, $averagePatience, $concurrency);
 $calculatedSL = 1;
-$agents = ceil($ErlangA->a);
+$agents = ceil($ErlangChats->a);
 while ($calculatedSL < $serviceLevelPercentsGoal) {
     $agents++;
-    $calculatedSL = $ErlangA->ServiceLevelPercents($agents, $serviceLevelTimeGoalMinutes);
+    $calculatedSL = $ErlangChats->ServiceLevelPercents($agents, $serviceLevelTimeGoalMinutes);
 }
 // Second step - to find abandons
-$calculatedPab = $ErlangA->ProbabilityOfAbandon($agents);
+$calculatedPab = $ErlangChats->ProbabilityOfAbandon($agents);
 print_r('required agents=' . $agents . '.');
 print_r("\n");
 print_r('resulted probability of abandon=' . $calculatedPab*100 .'%'); // about 5% - very few
 print_r("\n");
 print_r("\n");
 // Last step - to find agents with abandons
-$callsForecast15min = $callsForecast15min*(1-$calculatedPab);
-$ErlangA = new ErlangA($callsForecast15min, $averageHandlingTimeSeconds, $averagePatience);
+$messagesForecast15min = $messagesForecast15min*(1-$calculatedPab);
+$ErlangChats = new ErlangChats($messagesForecast15min, $averageHandlingTimeSeconds, $averagePatience, $concurrency);
 $calculatedSL = 1;
-$agents = ceil($ErlangA->a);
+$agents = ceil($ErlangChats->a);
 while ($calculatedSL < $serviceLevelPercentsGoal) {
     $agents++;
-    $calculatedSL = $ErlangA->ServiceLevelPercents($agents, $serviceLevelTimeGoalMinutes);
+    $calculatedSL = $ErlangChats->ServiceLevelPercents($agents, $serviceLevelTimeGoalMinutes);
 }
 
 print_r('required agents='.$agents.'.');
 print_r("\n");
 print_r('resulted service level='.$calculatedSL.'%');
 
-class ErlangA {
+
+class ErlangChats {
     private const ACCURACYFORABANDONS = 0.00001;
     private $lambda; // calls per minute
     private $mu; // service rate
     private $O; // individual abandonment rate
     private $beta; // averageHandlingTime in minutes
     public $a; // load in erlangs
-    public function __construct($callsForecast15min, $averageHandlingTimeSeconds, $averagePatience)
+    private $concurrency; // number of concurrent chats
+    public function __construct($callsForecast15min, $averageHandlingTimeSeconds, $averagePatience, $concurrency)
     {
+        $this->concurrency = $concurrency;
+        $callsForecast15min = $callsForecast15min / $this->concurrency;
         $this->lambda = $callsForecast15min / 15;
         $this->mu = 1 / ($averageHandlingTimeSeconds/60); // /60? in minutes?
         $this->O = 1 / $averagePatience;
@@ -90,6 +97,7 @@ class ErlangA {
     // $s = number of agents
     // $t = service level goal time in seconds
     public function ServiceLevelPercents($s, $t) {
+        $s *= $this->concurrency;
         $serviceLevelPercents = 1 - $this->DelayProbability($s) * exp(-1* ($s/$this->beta-$this->lambda) * $t);
         $serviceLevelPercents *= 100;
         return $serviceLevelPercents;
